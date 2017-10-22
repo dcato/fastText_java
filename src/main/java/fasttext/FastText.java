@@ -38,6 +38,7 @@ public class FastText {
 
 	private AtomicLong tokenCount_;
 	private long start_;
+	private long lastPrintInfo_;
 
 	private String charsetName_ = "UTF-8";
 	private Class<? extends LineReader> lineReaderClass_ = BufferedLineReader.class;
@@ -467,8 +468,12 @@ public class FastText {
 					if (localTokenCount > args_.lrUpdateRate) {
 						tokenCount_.addAndGet(localTokenCount);
 						localTokenCount = 0;
-						if (threadId == 0 && args_.verbose > 1 && (System.currentTimeMillis() - start_) % 1000 == 0) {
-							printInfo(progress, model.getLoss());
+						if (threadId == 0 && args_.verbose > 1) {
+							long current = System.currentTimeMillis();
+							if (current - lastPrintInfo_ > 1000) {
+								printInfo(progress, model.getLoss());
+								lastPrintInfo_ = current;
+							}
 						}
 					}
 				}
