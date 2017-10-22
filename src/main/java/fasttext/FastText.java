@@ -41,7 +41,7 @@ public class FastText {
 	private long lastPrintInfo_;
 
 	private String charsetName_ = "UTF-8";
-	private Class<? extends LineReader> lineReaderClass_ = BufferedLineReader.class;
+	private Class<? extends LineReader> lineReaderClass_ = OnMemoryLineReader.class;
 
 	public void getVector(Vector vec, final String word) {
 		final List<Integer> ngrams = dict_.getNgrams(word);
@@ -418,9 +418,9 @@ public class FastText {
 				System.out.println("thread: " + threadId + " RUNNING!");
 			}
 			Exception catchedException = null;
-			BufferedLineReader lineReader = null;
+			OnMemoryLineReader lineReader = null;
 			try {
-				lineReader = (BufferedLineReader) lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
+				lineReader = (OnMemoryLineReader) lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
 						charsetName_);
 				lineReader.skipLine(threadId * threadFileSize / args_.thread);
 				Model model = new Model(input_, output_, args_, threadId);
