@@ -7,9 +7,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
+
 public class BufferedLineReader extends LineReader {
 
 	private String lineDelimitingRegex_ = " |\r|\t|\\v|\f|\0";
+	private Splitter splitter = Splitter.on(CharMatcher.anyOf(" \r\t\n\u000B\u0085\u2028\u2029\f\0"));
 
 	private BufferedReader br_;
 
@@ -62,6 +66,14 @@ public class BufferedLineReader extends LineReader {
 			return null;
 		else
 			return line.split(lineDelimitingRegex_, -1);
+	}
+
+	public Iterable<String> readLineTokens2() throws IOException {
+		String line = readLine();
+		if (line == null)
+			return null;
+		else
+			return splitter.split(line);
 	}
 
 	@Override

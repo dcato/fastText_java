@@ -386,6 +386,46 @@ public class Dictionary {
 		return ntokens;
 	}
 
+	public int getLine2(Iterable<String> tokens, List<Integer> words, List<Integer> labels, Random urd) {
+		int ntokens = 0;
+		words.clear();
+		labels.clear();
+		if (tokens != null) {
+			for (String token : tokens) {
+				if (Utils.isEmpty(token)) {
+					continue;
+				}
+				int wid = getId(token);
+				if (wid < 0) {
+					continue;
+				}
+				entry_type type = getType(wid);
+				ntokens++;
+				if (type == entry_type.word && !discard(wid, Utils.randomFloat(urd, 0, 1))) {
+					words.add(wid);
+				}
+				if (type == entry_type.label) {
+					labels.add(wid - nwords_);
+				}
+				if (words.size() > MAX_LINE_SIZE && args_.model != model_name.sup) {
+					break;
+				}
+			}
+			int wid = getId(EOS);
+			if (wid >= 0) {
+				entry_type type = getType(wid);
+				ntokens++;
+				if (type == entry_type.word && !discard(wid, Utils.randomFloat(urd, 0, 1))) {
+					words.add(wid);
+				}
+				if (type == entry_type.label) {
+					labels.add(wid - nwords_);
+				}
+			}
+		}
+		return ntokens;
+	}
+
 	public String getLabel(int lid) {
 		Utils.checkArgument(lid >= 0);
 		Utils.checkArgument(lid < nlabels_);

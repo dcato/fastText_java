@@ -418,9 +418,9 @@ public class FastText {
 				System.out.println("thread: " + threadId + " RUNNING!");
 			}
 			Exception catchedException = null;
-			LineReader lineReader = null;
+			BufferedLineReader lineReader = null;
 			try {
-				lineReader = lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
+				lineReader = (BufferedLineReader) lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
 						charsetName_);
 				lineReader.skipLine(threadId * threadFileSize / args_.thread);
 				Model model = new Model(input_, output_, args_, threadId);
@@ -436,9 +436,9 @@ public class FastText {
 				List<Integer> line = new ArrayList<Integer>();
 				List<Integer> labels = new ArrayList<Integer>();
 
-				String[] lineTokens;
+				Iterable<String> lineTokens;
 				while (tokenCount_.get() < args_.epoch * ntokens) {
-					lineTokens = lineReader.readLineTokens();
+					lineTokens = lineReader.readLineTokens2();
 					if (lineTokens == null) {
 						try {
 							lineReader.rewind();
@@ -448,12 +448,12 @@ public class FastText {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						lineTokens = lineReader.readLineTokens();
+						lineTokens = lineReader.readLineTokens2();
 					}
 
 					float progress = (float) (tokenCount_.get()) / (args_.epoch * ntokens);
 					float lr = (float) (args_.lr * (1.0 - progress));
-					localTokenCount += dict_.getLine(lineTokens, line, labels, model.rng);
+					localTokenCount += dict_.getLine2(lineTokens, line, labels, model.rng);
 					if (args_.model == model_name.sup) {
 						dict_.addNgrams(line, args_.wordNgrams);
 						if (labels.size() == 0 || line.size() == 0) {
