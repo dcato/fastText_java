@@ -241,17 +241,14 @@ public class Dictionary {
 		try {
 			lineReader = lineReaderClass_.getConstructor(String.class, String.class).newInstance(file, charsetName_);
 			long minThreshold = 1;
-			String[] lineTokens;
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				for (int i = 0; i <= lineTokens.length; i++) {
-					if (i == lineTokens.length) {
-						add(EOS);
-					} else {
-						if (Utils.isEmpty(lineTokens[i])) {
-							continue;
-						}
-						add(lineTokens[i]);
+				while (lineTokens.hasNext()) {
+					String token = lineTokens.next();
+					if (Utils.isEmpty(token)) {
+						continue;
 					}
+					add(token);
 					if (ntokens_ % 1000000 == 0 && args_.verbose > 1) {
 						System.out.printf("\rRead %dM words", ntokens_ / 1000000);
 					}
@@ -260,6 +257,7 @@ public class Dictionary {
 						threshold(minThreshold, minThreshold);
 					}
 				}
+				add(EOS);
 			}
 		} finally {
 			if (lineReader != null) {
@@ -354,39 +352,7 @@ public class Dictionary {
 		}
 	}
 
-	public int getLine(String[] tokens, List<Integer> words, List<Integer> labels, Random urd) {
-		int ntokens = 0;
-		words.clear();
-		labels.clear();
-		if (tokens != null) {
-			for (int i = 0; i <= tokens.length; i++) {
-				if (i < tokens.length && Utils.isEmpty(tokens[i])) {
-					continue;
-				}
-				int wid = i == tokens.length ? getId(EOS) : getId(tokens[i]);
-				if (wid < 0) {
-					continue;
-				}
-				entry_type type = getType(wid);
-				ntokens++;
-				if (type == entry_type.word && !discard(wid, Utils.randomFloat(urd, 0, 1))) {
-					words.add(wid);
-				}
-				if (type == entry_type.label) {
-					labels.add(wid - nwords_);
-				}
-				if (words.size() > MAX_LINE_SIZE && args_.model != model_name.sup) {
-					break;
-				}
-				// if (EOS == tokens[i]){
-				// break;
-				// }
-			}
-		}
-		return ntokens;
-	}
-
-	public int getLine2(Iterator<String> tokens, List<Integer> words, List<Integer> labels, Random urd) {
+	public int getLine(Iterator<String> tokens, List<Integer> words, List<Integer> labels, Random urd) {
 		int ntokens = 0;
 		words.clear();
 		labels.clear();

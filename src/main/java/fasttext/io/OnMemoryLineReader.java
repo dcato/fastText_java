@@ -8,17 +8,13 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Scanner;
 
 public class OnMemoryLineReader extends LineReader {
 
 	private static HashMap<String, List<String>> cache = new HashMap<String, List<String>>();
 	private List<String> lines_;
 	private int index_ = 0;
-
-	private String lineDelimitingRegex_ = " |\r|\t|\\v|\f|\0";
 
 	public OnMemoryLineReader(String filename, String charsetName) throws IOException, UnsupportedEncodingException {
 		synchronized (cache) {
@@ -76,31 +72,13 @@ public class OnMemoryLineReader extends LineReader {
 	}
 
 	@Override
-	public String readLine() throws IOException {
-		if(index_ < lines_.size())
-			return lines_.get(index_++);
-		else
-			return null;
-	}
-
-	@Override
-	public String[] readLineTokens() throws IOException {
-		String line = readLine();
-		if (line == null)
-			return null;
-		else
-			return line.split(lineDelimitingRegex_);
-	}
-
-	public Iterator<String> readLineTokens2() throws IOException {
-		String line = readLine();
-		if (line == null)
-			return null;
-		else {
-			Scanner scanner = new Scanner(line);
-			scanner.useDelimiter(lineDelimitingRegex_);
-			return scanner;
+	protected String readLineInternal() throws IOException {
+		while (index_ < lines_.size()) {
+			String lineString = lines_.get(index_++);
+			if (! lineString.isEmpty() && ! lineString.startsWith("#"))
+				return lineString;
 		}
+		return null;
 	}
 
 	@Override

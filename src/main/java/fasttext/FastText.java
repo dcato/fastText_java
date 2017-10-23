@@ -222,11 +222,12 @@ public class FastText {
 		LineReader lineReader = null;
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(in, charsetName_);
-			String[] lineTokens;
+
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				dict_.getLine(lineTokens, line, labels, model_.rng);
 				dict_.addNgrams(line, args_.wordNgrams);
 				if (labels.size() > 0 && line.size() > 0) {
@@ -262,7 +263,7 @@ public class FastText {
 	 * @param k
 	 * @return
 	 */
-	public List<Pair<Float, String>> predict(String[] lineTokens, int k) {
+	public List<Pair<Float, String>> predict(Iterator<String> lineTokens, int k) {
 		List<Integer> words = new ArrayList<Integer>();
 		List<Integer> labels = new ArrayList<Integer>();
 		dict_.getLine(lineTokens, words, labels, model_.rng);
@@ -285,7 +286,7 @@ public class FastText {
 		return predictions;
 	}
 
-	public void predict(String[] lineTokens, int k, List<Pair<Float, String>> predictions) throws IOException {
+	public void predict(Iterator<String> lineTokens, int k, List<Pair<Float, String>> predictions) throws IOException {
 		List<Integer> words = new ArrayList<Integer>();
 		List<Integer> labels = new ArrayList<Integer>();
 		dict_.getLine(lineTokens, words, labels, model_.rng);
@@ -309,11 +310,11 @@ public class FastText {
 
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(in, charsetName_);
-			String[] lineTokens;
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				predictions.clear();
 				predict(lineTokens, k, predictions);
 				if (predictions.isEmpty()) {
@@ -367,11 +368,12 @@ public class FastText {
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(System.in,
 					charsetName_);
-			String[] lineTokens;
+
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				dict_.getLine(lineTokens, line, labels, model_.rng);
 				dict_.addNgrams(line, args_.wordNgrams);
 				vec.zero();
@@ -439,7 +441,7 @@ public class FastText {
 
 				Iterator<String> lineTokens;
 				while (tokenCount_.get() < args_.epoch * ntokens) {
-					lineTokens = lineReader.readLineTokens2();
+					lineTokens = lineReader.readLineTokens();
 					if (lineTokens == null) {
 						try {
 							lineReader.rewind();
@@ -449,12 +451,12 @@ public class FastText {
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						lineTokens = lineReader.readLineTokens2();
+						lineTokens = lineReader.readLineTokens();
 					}
 
 					float progress = (float) (tokenCount_.get()) / (args_.epoch * ntokens);
 					float lr = (float) (args_.lr * (1.0 - progress));
-					localTokenCount += dict_.getLine2(lineTokens, line, labels, model.rng);
+					localTokenCount += dict_.getLine(lineTokens, line, labels, model.rng);
 					if (args_.model == model_name.sup) {
 						dict_.addNgrams(line, args_.wordNgrams);
 						if (labels.size() == 0 || line.size() == 0) {

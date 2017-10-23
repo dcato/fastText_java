@@ -9,8 +9,6 @@ import java.io.UnsupportedEncodingException;
 
 public class BufferedLineReader extends LineReader {
 
-	private String lineDelimitingRegex_ = " |\r|\t|\\v|\f|\0";
-
 	private BufferedReader br_;
 
 	public BufferedLineReader(String filename, String charsetName) throws IOException, UnsupportedEncodingException {
@@ -45,7 +43,7 @@ public class BufferedLineReader extends LineReader {
 	}
 
 	@Override
-	public String readLine() throws IOException {
+	protected String readLineInternal() throws IOException {
 		synchronized (lock) {
 			String lineString = br_.readLine();
 			while (lineString != null && (lineString.isEmpty() || lineString.startsWith("#"))) {
@@ -53,15 +51,6 @@ public class BufferedLineReader extends LineReader {
 			}
 			return lineString;
 		}
-	}
-
-	@Override
-	public String[] readLineTokens() throws IOException {
-		String line = readLine();
-		if (line == null)
-			return null;
-		else
-			return line.split(lineDelimitingRegex_, -1);
 	}
 
 	@Override
@@ -96,13 +85,4 @@ public class BufferedLineReader extends LineReader {
 			}
 		}
 	}
-
-	public String getLineDelimitingRege() {
-		return lineDelimitingRegex_;
-	}
-
-	public void setLineDelimitingRegex(String lineDelimitingRegex) {
-		this.lineDelimitingRegex_ = lineDelimitingRegex;
-	}
-
 }
