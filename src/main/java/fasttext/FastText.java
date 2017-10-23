@@ -15,6 +15,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,9 +39,10 @@ public class FastText {
 
 	private AtomicLong tokenCount_;
 	private long start_;
+	private long lastPrintInfo_;
 
 	private String charsetName_ = "UTF-8";
-	private Class<? extends LineReader> lineReaderClass_ = BufferedLineReader.class;
+	private Class<? extends LineReader> lineReaderClass_ = OnMemoryLineReader.class;
 
 	public void getVector(Vector vec, final String word) {
 		final List<Integer> ngrams = dict_.getNgrams(word);
@@ -220,11 +222,12 @@ public class FastText {
 		LineReader lineReader = null;
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(in, charsetName_);
-			String[] lineTokens;
+
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				dict_.getLine(lineTokens, line, labels, model_.rng);
 				dict_.addNgrams(line, args_.wordNgrams);
 				if (labels.size() > 0 && line.size() > 0) {
@@ -260,7 +263,7 @@ public class FastText {
 	 * @param k
 	 * @return
 	 */
-	public List<Pair<Float, String>> predict(String[] lineTokens, int k) {
+	public List<Pair<Float, String>> predict(Iterator<String> lineTokens, int k) {
 		List<Integer> words = new ArrayList<Integer>();
 		List<Integer> labels = new ArrayList<Integer>();
 		dict_.getLine(lineTokens, words, labels, model_.rng);
@@ -283,7 +286,7 @@ public class FastText {
 		return predictions;
 	}
 
-	public void predict(String[] lineTokens, int k, List<Pair<Float, String>> predictions) throws IOException {
+	public void predict(Iterator<String> lineTokens, int k, List<Pair<Float, String>> predictions) throws IOException {
 		List<Integer> words = new ArrayList<Integer>();
 		List<Integer> labels = new ArrayList<Integer>();
 		dict_.getLine(lineTokens, words, labels, model_.rng);
@@ -307,11 +310,11 @@ public class FastText {
 
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(in, charsetName_);
-			String[] lineTokens;
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				predictions.clear();
 				predict(lineTokens, k, predictions);
 				if (predictions.isEmpty()) {
@@ -365,11 +368,12 @@ public class FastText {
 		try {
 			lineReader = lineReaderClass_.getConstructor(InputStream.class, String.class).newInstance(System.in,
 					charsetName_);
-			String[] lineTokens;
+
+			if ("quit".equals(lineReader.peekLine()))
+				return;
+			
+			Iterator<String> lineTokens;
 			while ((lineTokens = lineReader.readLineTokens()) != null) {
-				if (lineTokens.length == 1 && "quit".equals(lineTokens[0])) {
-					break;
-				}
 				dict_.getLine(lineTokens, line, labels, model_.rng);
 				dict_.addNgrams(line, args_.wordNgrams);
 				vec.zero();
@@ -417,9 +421,9 @@ public class FastText {
 				System.out.println("thread: " + threadId + " RUNNING!");
 			}
 			Exception catchedException = null;
-			LineReader lineReader = null;
+			OnMemoryLineReader lineReader = null;
 			try {
-				lineReader = lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
+				lineReader = (OnMemoryLineReader) lineReaderClass_.getConstructor(String.class, String.class).newInstance(args_.input,
 						charsetName_);
 				lineReader.skipLine(threadId * threadFileSize / args_.thread);
 				Model model = new Model(input_, output_, args_, threadId);
@@ -435,7 +439,7 @@ public class FastText {
 				List<Integer> line = new ArrayList<Integer>();
 				List<Integer> labels = new ArrayList<Integer>();
 
-				String[] lineTokens;
+				Iterator<String> lineTokens;
 				while (tokenCount_.get() < args_.epoch * ntokens) {
 					lineTokens = lineReader.readLineTokens();
 					if (lineTokens == null) {
@@ -467,8 +471,12 @@ public class FastText {
 					if (localTokenCount > args_.lrUpdateRate) {
 						tokenCount_.addAndGet(localTokenCount);
 						localTokenCount = 0;
-						if (threadId == 0 && args_.verbose > 1 && (System.currentTimeMillis() - start_) % 1000 == 0) {
-							printInfo(progress, model.getLoss());
+						if (threadId == 0 && args_.verbose > 1) {
+							long current = System.currentTimeMillis();
+							if (current - lastPrintInfo_ > 1000) {
+								printInfo(progress, model.getLoss());
+								lastPrintInfo_ = current;
+							}
 						}
 					}
 				}

@@ -8,8 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MappedByteBufferLineReader extends LineReader {
 
@@ -24,7 +22,6 @@ public class MappedByteBufferLineReader extends LineReader {
 	private boolean fillLine_ = false;
 
 	private StringBuilder sb_ = new StringBuilder();
-	private List<String> tokens_ = new ArrayList<String>();
 
 	public MappedByteBufferLineReader(String filename, String charsetName)
 			throws IOException, UnsupportedEncodingException {
@@ -73,7 +70,7 @@ public class MappedByteBufferLineReader extends LineReader {
 	}
 
 	@Override
-	public String readLine() throws IOException {
+	protected String readLineInternal() throws IOException {
 		synchronized (lock) {
 			ensureOpen();
 			String lineString = getLine();
@@ -81,18 +78,6 @@ public class MappedByteBufferLineReader extends LineReader {
 				lineString = getLine();
 			}
 			return lineString;
-		}
-	}
-
-	@Override
-	public String[] readLineTokens() throws IOException {
-		synchronized (lock) {
-			ensureOpen();
-			String[] tokens = getLineTokens();
-			while (tokens != null && ((tokens.length == 1 && tokens[0].isEmpty()) || tokens[0].startsWith("#"))) {
-				tokens = getLineTokens();
-			}
-			return tokens;
 		}
 	}
 
@@ -182,43 +167,6 @@ public class MappedByteBufferLineReader extends LineReader {
 
 		sb_.append(new String(bytes_, 0, i + 1, charset_));
 		return sb_.toString();
-	}
-
-	// " |\r|\t|\\v|\f|\0"
-	// 32 ' ', 9 \t, 10 \n, 11 \\v, 12 \f, 13 \r, 0 \0
-	protected String[] getLineTokens() throws IOException {
-		fillByteBuffer();
-		if (!byteBuffer_.hasRemaining()) {
-			return null;
-		}
-		tokens_.clear();
-		sb_.setLength(0);
-
-		int b = -1;
-		int i = -1;
-		do {
-			b = byteBuffer_.get();
-
-			if ((b >= 10 && b <= 13) || b == 0) {
-				break;
-			} else if (b == 9 || b == 32) {
-				sb_.append(new String(bytes_, 0, i + 1, charset_));
-				tokens_.add(sb_.toString());
-				sb_.setLength(0);
-				i = -1;
-			} else {
-				bytes_[++i] = (byte) b;
-				if (i == string_buf_size_ - 1) {
-					sb_.append(new String(bytes_, charset_));
-					i = -1;
-				}
-			}
-			fillByteBuffer();
-		} while (byteBuffer_.hasRemaining());
-
-		sb_.append(new String(bytes_, 0, i + 1, charset_));
-		tokens_.add(sb_.toString());
-		return tokens_.toArray(new String[tokens_.size()]);
 	}
 
 	private void fillByteBuffer() throws IOException {
