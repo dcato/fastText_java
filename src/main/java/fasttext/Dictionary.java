@@ -283,11 +283,15 @@ public class Dictionary {
 	public void threshold(long t, long tl) {
 		Collections.sort(words_, entry_comparator);
 		Iterator<entry> iterator = words_.iterator();
+		words_ = new ArrayList<entry>(words_.size());
 		while (iterator.hasNext()) {
 			entry _entry = iterator.next();
 			if ((entry_type.word == _entry.type && _entry.count < t)
 					|| (entry_type.label == _entry.type && _entry.count < tl)) {
-				iterator.remove();
+				// ArrayList's iterator#remove is extremely inefficient when over 100M words.
+				// iterator.remove();
+			} else {
+				words_.add(_entry);
 			}
 		}
 		((ArrayList<entry>) words_).trimToSize();
